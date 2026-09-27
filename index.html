@@ -23,9 +23,17 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<style>
+@media (max-width: 639px) {
+  #workspace { max-height: 62vh; }
+  #gestureText { font-size: 12px; }
+}
+#canvas { touch-action: none; }
+</style>
+
 </head>
 
-<body class="bg-[#02040a] text-white min-h-screen overflow-hidden antialiased">
+<body class="bg-[#02040a] text-white min-h-screen overflow-x-hidden overflow-y-auto antialiased">
 <div class="min-h-screen relative">
 <div class="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,.10),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(139,92,246,.08),transparent_28%)]"></div>
 
@@ -61,7 +69,7 @@
 
 <div id="workspace" class="relative flex-1 min-h-0 w-full rounded-[28px] overflow-hidden bg-black border border-white/[.09] shadow-[0_30px_100px_rgba(0,0,0,.65)] ring-1 ring-cyan-300/[.04]">
 <div class="absolute inset-0 opacity-30 pointer-events-none" style="background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:48px 48px;"></div>
-<div class="absolute inset-e0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,.42))]"></div>
+<div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,.42))]"></div>
 <video id="video" autoplay playsinline muted class="hidden" aria-hidden="true"></video>
 <canvas id="canvas" class="absolute inset-0 w-full h-full bg-black"></canvas>
 
@@ -106,7 +114,7 @@
 
 <body class="bg-[#03050d] text-white min-h-screen overflow-hidden selection:bg-cyan-400/30">
 
-    <header class="h-16 border-b border-white/10 bg-[#080d20]/95 backdrop-blur-2xl flex items-center justify-between px-6 shadow-lg shadow-black/20">
+    <header class="min-h-16 border-b border-white/10 bg-[#080d20]/95 backdrop-blur-2xl flex flex-wrap items-center justify-between gap-3 px-3 sm:px-5 lg:px-6 py-3 shadow-lg shadow-black/20">
         <div>
             <h1 class="text-xl font-black tracking-[0.18em]">
                 HAND <span class="text-neon">STUDIO</span>
@@ -128,17 +136,17 @@
             </span>
 
             <button onclick="clearCanvas()"
-                class="ml-4 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition">
+                class="ml-0 sm:ml-2 px-3 sm:px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition">
                 Tozalash
             </button>
         </div>
     </header>
 
 
-    <main class="h-[calc(100vh-64px)] flex">
+    <main class="min-h-[calc(100vh-64px)] flex flex-col lg:flex-row">
 
         <!-- LEFT -->
-        <aside class="w-20 border-r border-white/10 bg-[#070b19]/95 backdrop-blur-xl flex flex-col items-center py-6 gap-5 shadow-2xl">
+        <aside class="w-full lg:w-20 border-b lg:border-b-0 lg:border-r border-white/10 bg-[#070b19]/95 backdrop-blur-xl flex flex-row lg:flex-col items-center justify-center lg:justify-start py-3 lg:py-6 px-3 lg:px-0 gap-3 lg:gap-5 shadow-2xl shrink-0">
 
             <button id="drawBtn"
                 onclick="setMode('draw')"
@@ -152,7 +160,7 @@
                 ✋
             </button>
 
-            <div class="w-10 h-px bg-white/10"></div>
+            <div class="hidden lg:block w-10 h-px bg-white/10"></div>
 
             <button onclick="setColor('#00f5ff')"
                 class="w-8 h-8 rounded-full bg-cyan-400 border-2 border-white/40"></button>
@@ -166,21 +174,21 @@
             <button onclick="setColor('#ffffff')"
                 class="w-8 h-8 rounded-full bg-white border-2 border-white/30"></button>
 
-            <div class="mt-auto text-[9px] text-gray-600 rotate-[-90deg] whitespace-nowrap">
+            <div class="hidden lg:block mt-auto text-[9px] text-gray-600 rotate-[-90deg] whitespace-nowrap">
                 HAND CONTROL
             </div>
         </aside>
 
 
         <!-- CENTER -->
-        <section class="flex-1 relative flex items-center justify-center p-5">
+        <section class="flex-1 relative flex items-center justify-center p-3 sm:p-5 min-w-0">
 
             <div class="absolute inset-0 opacity-20"
                  style="background-image:linear-gradient(rgba(0,245,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,.045) 1px,transparent 1px);background-size:40px 40px;">
             </div>
 
             <div id="workspace"
-                class="relative w-full max-w-6xl aspect-video rounded-[2rem] overflow-hidden border border-cyan-300/20 bg-black shadow-[0_30px_100px_rgba(0,0,0,.75),0_0_80px_rgba(0,245,255,.08)] ring-1 ring-white/10 before:absolute before:inset-0 before:pointer-events-none before:rounded-[2rem] before:ring-1 before:ring-inset before:ring-white/5">
+                class="relative w-full max-w-6xl aspect-video sm:aspect-[16/9] rounded-2xl sm:rounded-[2rem] overflow-hidden border border-cyan-300/20 bg-black shadow-[0_30px_100px_rgba(0,0,0,.75),0_0_80px_rgba(0,245,255,.08)] ring-1 ring-white/10 before:absolute before:inset-0 before:pointer-events-none before:rounded-[2rem] before:ring-1 before:ring-inset before:ring-white/5">
 
                 <video id="video"
                     autoplay
@@ -204,16 +212,16 @@
                     </div>
                 </div>
 
-                <div class="absolute top-4 right-4 px-3 py-2.5 rounded-xl bg-emerald-400/[0.08] backdrop-blur-xl border border-emerald-300/20 text-[10px] font-semibold tracking-wider text-emerald-300 shadow-lg shadow-emerald-950/20">
+                <div class="absolute top-3 right-3 sm:top-4 sm:right-4 px-2 sm:px-3 py-2 rounded-xl bg-emerald-400/[0.08] backdrop-blur-xl border border-emerald-300/20 text-[10px] font-semibold tracking-wider text-emerald-300 shadow-lg shadow-emerald-950/20">
                     ● CAMERA HIDDEN · HAND TRACKING
                 </div>
 
-                <div class="absolute top-4 left-4 px-3 py-2 rounded-xl bg-black/50 backdrop-blur border border-white/10 text-xs">
+                <div class="absolute top-3 left-3 sm:top-4 sm:left-4 px-2 sm:px-3 py-2 rounded-xl bg-black/50 backdrop-blur border border-white/10 text-xs">
                     <span class="text-gray-400">MODE:</span>
                     <span id="modeText" class="text-neon font-bold">DRAW</span>
                 </div>
 
-                <div class="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-none">
+                <div class="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex flex-col sm:flex-row gap-2 sm:justify-between pointer-events-none">
                     <div class="px-3 py-2 rounded-xl bg-black/50 backdrop-blur border border-white/10 text-xs text-gray-400">
                         ☝️ <span class="text-white">Ko‘rsatkich</span> — chizish
                     </div>
@@ -228,7 +236,7 @@
 
 
         <!-- RIGHT -->
-        <aside class="w-64 border-l border-white/10 bg-[#060914]/95 backdrop-blur-2xl p-5 hidden lg:block shadow-[-20px_0_60px_rgba(0,0,0,.25)]">
+        <aside class="w-full lg:w-64 border-t lg:border-t-0 lg:border-l border-white/10 bg-[#060914]/95 backdrop-blur-2xl p-4 sm:p-5 block shadow-[-20px_0_60px_rgba(0,0,0,.25)]">
 
             <div class="flex items-center justify-between mb-6">
                 <div>
@@ -305,9 +313,9 @@ let thumbActive = false;
 
 
 function resizeCanvas() {
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
-
+    const workspace = document.getElementById("workspace");
+    canvas.width = video.videoWidth || workspace.clientWidth || 1280;
+    canvas.height = video.videoHeight || workspace.clientHeight || 720;
     render();
 }
 
