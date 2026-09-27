@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Hand Studio</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        neon: "#00f5ff",
+                        purple: "#8b5cf6"
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+</head>
+
+<body class="bg-[#02040a] text-white min-h-screen overflow-hidden antialiased">
+<div class="min-h-screen relative">
+<div class="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,.10),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(139,92,246,.08),transparent_28%)]"></div>
+
+<header class="relative z-20 h-[72px] border-b border-white/[.07] bg-[#050812]/80 backdrop-blur-2xl flex items-center justify-between px-5 lg:px-7">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-300 to-blue-600 p-px shadow-[0_0_30px_rgba(34,211,238,.22)]">
+<div class="w-full h-full rounded-2xl bg-[#060914] flex items-center justify-center text-cyan-300 text-lg">✦</div>
+</div>
+<div><div class="flex items-center gap-2"><h1 class="text-[15px] font-black tracking-[.24em]">HAND<span class="text-cyan-300">STUDIO</span></h1><span class="hidden sm:inline px-2 py-0.5 rounded-full bg-white/[.05] border border-white/10 text-[9px] tracking-widest text-gray-500">PRO</span></div><p class="text-[9px] text-gray-600 tracking-[.32em] mt-0.5">GESTURE CANVAS</p></div>
+</div>
+<div class="hidden md:flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/[.025] border border-white/[.07]"><span id="statusDot" class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span><span id="statusText" class="text-[11px] text-gray-400">Kamera ulanmoqda...</span></div>
+<div class="flex items-center gap-2"><button onclick="undoStroke()" class="h-10 px-3 rounded-xl bg-white/[.04] border border-white/[.08] text-xs text-gray-300 hover:bg-white/[.08] transition">↶ <span class="hidden sm:inline ml-1">Undo</span></button><button onclick="clearCanvas()" class="h-10 px-4 rounded-xl bg-red-500/[.07] border border-red-400/15 text-xs text-red-300 hover:bg-red-500/[.14] transition">Clear</button></div>
+</header>
+
+<main class="relative z-10 h-[calc(100vh-72px)] grid grid-cols-[76px_minmax(0,1fr)] xl:grid-cols-[76px_minmax(0,1fr)_286px]">
+<aside class="border-r border-white/[.07] bg-[#050811]/90 backdrop-blur-2xl flex flex-col items-center py-5 gap-3">
+<div class="text-[8px] tracking-[.3em] text-gray-700 rotate-[-90deg] mb-5">TOOLS</div>
+<button id="drawBtn" onclick="setMode('draw')" class="w-12 h-12 rounded-2xl bg-cyan-300 text-black shadow-[0_0_28px_rgba(34,211,238,.28)] text-lg transition hover:scale-105">✎</button>
+<button id="moveBtn" onclick="setMode('move')" class="w-12 h-12 rounded-2xl bg-white/[.035] border border-white/[.08] text-gray-300 text-lg hover:bg-white/[.08] transition">✋</button>
+<div class="w-8 h-px bg-white/[.08] my-2"></div>
+<button onclick="setColor('#00f5ff')" class="w-8 h-8 rounded-xl bg-cyan-300 ring-2 ring-cyan-200/20 hover:scale-110 transition"></button>
+<button onclick="setColor('#8b5cf6')" class="w-8 h-8 rounded-xl bg-violet-500 hover:scale-110 transition"></button>
+<button onclick="setColor('#ff3b81')" class="w-8 h-8 rounded-xl bg-pink-500 hover:scale-110 transition"></button>
+<button onclick="setColor('#ffffff')" class="w-8 h-8 rounded-xl bg-white hover:scale-110 transition"></button>
+<div class="mt-auto text-[8px] tracking-[.25em] text-gray-700 [writing-mode:vertical-rl]">HAND CONTROL</div>
+</aside>
+
+<section class="relative min-w-0 p-4 lg:p-6 flex flex-col">
+<div class="flex items-center justify-between mb-4">
+<div><p class="text-[9px] uppercase tracking-[.3em] text-cyan-300/40">Live workspace</p><h2 class="text-lg lg:text-xl font-semibold tracking-tight mt-1">Infinite Gesture Canvas</h2></div>
+<div class="hidden sm:flex items-center gap-2"><div class="px-3 py-2 rounded-xl bg-white/[.03] border border-white/[.07] text-[10px] text-gray-500">MODE <span id="modeText" class="text-cyan-300 font-bold ml-1">DRAW</span></div><div class="px-3 py-2 rounded-xl bg-emerald-400/[.05] border border-emerald-300/10 text-[10px] text-emerald-300">● TRACKING</div></div>
+</div>
+
+<div id="workspace" class="relative flex-1 min-h-0 w-full rounded-[28px] overflow-hidden bg-black border border-white/[.09] shadow-[0_30px_100px_rgba(0,0,0,.65)] ring-1 ring-cyan-300/[.04]">
+<div class="absolute inset-0 opacity-30 pointer-events-none" style="background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:48px 48px;"></div>
+<div class="absolute inset-e0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,.42))]"></div>
+<video id="video" autoplay playsinline muted class="hidden" aria-hidden="true"></video>
+<canvas id="canvas" class="absolute inset-0 w-full h-full bg-black"></canvas>
+
+<div id="loading" class="absolute inset-0 flex items-center justify-center bg-[#02040a]/90 backdrop-blur-md">
+<div class="text-center"><div class="relative w-14 h-14 mx-auto mb-5"><div class="absolute inset-0 rounded-full border border-cyan-300/20"></div><div class="absolute inset-1 rounded-full border-2 border-transparent border-t-cyan-300 animate-spin"></div><div class="absolute inset-0 flex items-center justify-center text-cyan-300">✦</div></div><p class="text-sm text-gray-200 font-medium">Hand tracking ishga tushmoqda</p><p class="text-[10px] text-gray-600 mt-2">Kamera tasviri ko‘rsatilmaydi</p></div>
+</div>
+
+<div class="absolute top-5 left-5 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/55 backdrop-blur-xl border border-white/[.08] text-[10px]"><span class="text-gray-600">MODE</span><span id="modeText2" class="text-cyan-300 font-bold">DRAW</span></div>
+<div class="absolute top-5 right-5 px-3 py-2 rounded-xl bg-emerald-400/[.06] backdrop-blur-xl border border-emerald-300/15 text-[9px] tracking-wider text-emerald-300">CAMERA HIDDEN · HAND ONLY</div>
+<div class="absolute bottom-5 left-5 right-5 flex flex-col sm:flex-row gap-2 sm:justify-between pointer-events-none"><div class="px-3 py-2 rounded-xl bg-black/55 backdrop-blur-xl border border-white/[.07] text-[10px] text-gray-500">☝ <span class="text-gray-200">Draw</span> · 🤏 <span class="text-gray-200">Move</span></div><div class="px-3 py-2 rounded-xl bg-black/55 backdrop-blur-xl border border-white/[.07] text-[10px] text-gray-500">✌ <span class="text-gray-200">Undo</span> · 👍 <span class="text-gray-200">Color</span> · ✊ <span class="text-gray-200">Pause</span></div></div>
+</div>
+</section>
+
+<aside class="hidden xl:flex border-l border-white/[.07] bg-[#050811]/90 backdrop-blur-2xl p-5 flex-col">
+<div class="mb-7"><p class="text-[9px] uppercase tracking-[.3em] text-cyan-300/40">Inspector</p><h3 class="text-base font-semibold mt-1">Canvas settings</h3></div>
+<div class="space-y-6">
+<div class="p-4 rounded-2xl bg-white/[.025] border border-white/[.07]"><div class="flex justify-between items-center"><label class="text-[10px] uppercase tracking-[.2em] text-gray-500">Brush</label><span class="text-[10px] text-cyan-300">LIVE</span></div><div class="mt-4 flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-cyan-300/10 border border-cyan-300/20 flex items-center justify-center"><div class="rounded-full bg-cyan-300 w-3 h-3"></div></div><input id="brushSize" type="range" min="2" max="30" value="7" class="w-full accent-cyan-300"></div><div class="flex justify-between text-[9px] text-gray-600 mt-2"><span>Fine</span><span>Bold</span></div></div>
+<div><div class="flex items-center justify-between mb-3"><label class="text-[10px] uppercase tracking-[.2em] text-gray-500">Color</label><span class="text-[9px] text-gray-600">4 presets</span></div><div class="grid grid-cols-4 gap-2"><button onclick="setColor('#00f5ff')" class="h-11 rounded-xl bg-cyan-300 hover:scale-[1.03] transition"></button><button onclick="setColor('#8b5cf6')" class="h-11 rounded-xl bg-violet-500 hover:scale-[1.03] transition"></button><button onclick="setColor('#ff3b81')" class="h-11 rounded-xl bg-pink-500 hover:scale-[1.03] transition"></button><button onclick="setColor('#ffffff')" class="h-11 rounded-xl bg-white hover:scale-[1.03] transition"></button></div></div>
+<div class="p-4 rounded-2xl bg-gradient-to-br from-cyan-300/[.06] to-violet-500/[.04] border border-white/[.07]"><div class="flex items-center gap-2 mb-3"><span class="w-2 h-2 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,.8)]"></span><span class="text-[10px] uppercase tracking-[.2em] text-gray-500">Gesture status</span></div><p id="gestureText" class="text-sm text-cyan-200 font-medium">Qo‘l kutilmoqda...</p></div>
+</div>
+<div class="mt-auto pt-5 border-t border-white/[.06]"><div class="flex justify-between text-[9px] text-gray-600 mb-2"><span>ENGINE</span><span>MEDIAPIPE</span></div><div class="h-1 rounded-full bg-white/[.05] overflow-hidden"><div class="h-full w-4/5 bg-gradient-to-r from-cyan-300 to-violet-500 rounded-full"></div></div></div>
+</aside>
+</main>
+</div>
+
+<script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        neon: "#00f5ff",
+                        purple: "#8b5cf6"
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+</head>
+
+<body class="bg-[#03050d] text-white min-h-screen overflow-hidden selection:bg-cyan-400/30">
+
+    <header class="h-16 border-b border-white/10 bg-[#080d20]/95 backdrop-blur-2xl flex items-center justify-between px-6 shadow-lg shadow-black/20">
+        <div>
+            <h1 class="text-xl font-black tracking-[0.18em]">
+                HAND <span class="text-neon">STUDIO</span>
+            </h1>
+            <p class="text-[10px] text-cyan-300/40 tracking-[4px]">
+                GESTURE DRAWING
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-[10px] tracking-wider text-gray-500">
+                HAND TRACKING
+            </div>
+            <div id="statusDot"
+                 class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></div>
+
+            <span id="statusText" class="text-sm text-gray-300">
+                Kamera ulanmoqda...
+            </span>
+
+            <button onclick="clearCanvas()"
+                class="ml-4 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition">
+                Tozalash
+            </button>
+        </div>
+    </header>
+
+
+    <main class="h-[calc(100vh-64px)] flex">
+
+        <!-- LEFT -->
+        <aside class="w-20 border-r border-white/10 bg-[#070b19]/95 backdrop-blur-xl flex flex-col items-center py-6 gap-5 shadow-2xl">
+
+            <button id="drawBtn"
+                onclick="setMode('draw')"
+                class="w-12 h-12 rounded-2xl bg-neon text-black shadow-lg shadow-cyan-500/30 text-xl">
+                ✏️
+            </button>
+
+            <button id="moveBtn"
+                onclick="setMode('move')"
+                class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 text-xl hover:bg-white/10 transition">
+                ✋
+            </button>
+
+            <div class="w-10 h-px bg-white/10"></div>
+
+            <button onclick="setColor('#00f5ff')"
+                class="w-8 h-8 rounded-full bg-cyan-400 border-2 border-white/40"></button>
+
+            <button onclick="setColor('#8b5cf6')"
+                class="w-8 h-8 rounded-full bg-purple-500 border-2 border-white/20"></button>
+
+            <button onclick="setColor('#ff3b81')"
+                class="w-8 h-8 rounded-full bg-pink-500 border-2 border-white/20"></button>
+
+            <button onclick="setColor('#ffffff')"
+                class="w-8 h-8 rounded-full bg-white border-2 border-white/30"></button>
+
+            <div class="mt-auto text-[9px] text-gray-600 rotate-[-90deg] whitespace-nowrap">
+                HAND CONTROL
+            </div>
+        </aside>
+
+
+        <!-- CENTER -->
+        <section class="flex-1 relative flex items-center justify-center p-5">
+
+            <div class="absolute inset-0 opacity-20"
+                 style="background-image:linear-gradient(rgba(0,245,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,.045) 1px,transparent 1px);background-size:40px 40px;">
+            </div>
+
+            <div id="workspace"
+                class="relative w-full max-w-6xl aspect-video rounded-[2rem] overflow-hidden border border-cyan-300/20 bg-black shadow-[0_30px_100px_rgba(0,0,0,.75),0_0_80px_rgba(0,245,255,.08)] ring-1 ring-white/10 before:absolute before:inset-0 before:pointer-events-none before:rounded-[2rem] before:ring-1 before:ring-inset before:ring-white/5">
+
+                <video id="video"
+                    autoplay
+                    playsinline
+                    muted
+                    class="hidden"
+                    aria-hidden="true">
+                </video>
+
+                <canvas id="canvas"
+                    class="absolute inset-0 w-full h-full">
+                </canvas>
+
+                <div id="loading"class="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <div class="text-center">
+                        <div class="w-12 h-12 border-4 border-white/20 border-t-cyan-400 rounded-full animate-spin mx-auto mb-4"></div>
+                        <p class="text-gray-300">Kamera ulanmoqda...</p>
+                        <p class="text-xs text-gray-600 mt-2">
+                            Kamera faqat qo‘l harakatini aniqlaydi
+                        </p>
+                    </div>
+                </div>
+
+                <div class="absolute top-4 right-4 px-3 py-2.5 rounded-xl bg-emerald-400/[0.08] backdrop-blur-xl border border-emerald-300/20 text-[10px] font-semibold tracking-wider text-emerald-300 shadow-lg shadow-emerald-950/20">
+                    ● CAMERA HIDDEN · HAND TRACKING
+                </div>
+
+                <div class="absolute top-4 left-4 px-3 py-2 rounded-xl bg-black/50 backdrop-blur border border-white/10 text-xs">
+                    <span class="text-gray-400">MODE:</span>
+                    <span id="modeText" class="text-neon font-bold">DRAW</span>
+                </div>
+
+                <div class="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-none">
+                    <div class="px-3 py-2 rounded-xl bg-black/50 backdrop-blur border border-white/10 text-xs text-gray-400">
+                        ☝️ <span class="text-white">Ko‘rsatkich</span> — chizish
+                    </div>
+
+                    <div class="px-3 py-2 rounded-xl bg-black/50 backdrop-blur border border-white/10 text-xs text-gray-400">
+                        🤏 <span class="text-white">Pinch</span> — chizmani ko‘chirish
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- RIGHT -->
+        <aside class="w-64 border-l border-white/10 bg-[#060914]/95 backdrop-blur-2xl p-5 hidden lg:block shadow-[-20px_0_60px_rgba(0,0,0,.25)]">
+
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <p class="text-[10px] uppercase tracking-[0.25em] text-cyan-300/40">Workspace</p>
+                    <h2 class="font-bold text-lg">Controls</h2>
+                </div>
+                <div class="w-9 h-9 rounded-xl bg-cyan-400/10 border border-cyan-300/15 flex items-center justify-center text-cyan-300">✦</div>
+            </div>
+
+            <div class="space-y-5">
+
+                <div>
+                    <label class="text-xs text-gray-500 uppercase tracking-widest">
+                        Brush size
+                    </label>
+
+                    <input id="brushSize"
+                        type="range"
+                        min="2"
+                        max="30"
+                        value="7"
+                        class="w-full mt-3 accent-cyan-400">
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-500 uppercase tracking-widest">
+                        Color
+                    </label>
+
+                    <div class="grid grid-cols-4 gap-2 mt-3">
+                        <button onclick="setColor('#00f5ff')" class="h-9 rounded-lg bg-cyan-400"></button>
+                        <button onclick="setColor('#8b5cf6')" class="h-9 rounded-lg bg-purple-500"></button>
+                        <button onclick="setColor('#ff3b81')" class="h-9 rounded-lg bg-pink-500"></button>
+                        <button onclick="setColor('#ffffff')" class="h-9 rounded-lg bg-white"></button>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-gradient-to-br from-white/[0.07] to-white/[0.025] border border-white/10 shadow-lg shadow-black/10">
+                    <p class="text-xs text-gray-500 mb-2">STATUS</p>
+                    <p id="gestureText" class="text-sm text-cyan-300">
+                        Qo‘l kutilmoqda...
+                    </p>
+                </div>
+
+            </div>
+
+        </aside>
+
+    </main>
+
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const loading = document.getElementById("loading");
+const statusText = document.getElementById("statusText");
+const statusDot = document.getElementById("statusDot");
+const gestureText = document.getElementById("gestureText");
+const modeText = document.getElementById("modeText");
+
+let strokes = [];
+let currentStroke = null;
+
+let mode = "draw";
+let brushColor = "#00f5ff";
+let brushSize = 7;
+
+let moving = false;
+let previousPoint = null;
+let peaceActive = false;
+let thumbActive = false;
+
+
+function resizeCanvas() {
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+
+    render();
+}
+
+
+window.addEventListener("resize", resizeCanvas);
+
+
+function setMode(newMode) {
+    mode = newMode;
+
+    modeText.textContent = newMode.toUpperCase();
+    const modeText2 = document.getElementById("modeText2");
+    if (modeText2) modeText2.textContent = newMode.toUpperCase();
+    if (newMode === "draw") {
+        document.getElementById("drawBtn").className =
+            "w-12 h-12 rounded-2xl bg-neon text-black shadow-lg shadow-cyan-500/30 text-xl";
+
+        document.getElementById("moveBtn").className =
+            "w-12 h-12 rounded-2xl bg-white/5 border border-white/10 text-xl hover:bg-white/10 transition";
+    } else {
+        document.getElementById("moveBtn").className =
+            "w-12 h-12 rounded-2xl bg-neon text-black shadow-lg shadow-cyan-500/30 text-xl";
+
+        document.getElementById("drawBtn").className =
+            "w-12 h-12 rounded-2xl bg-white/5 border border-white/10 text-xl hover:bg-white/10 transition";
+    }
+}
+
+
+function setColor(color) {
+    brushColor = color;
+}
+
+
+function clearCanvas() {
+    strokes = [];
+    currentStroke = null;
+    previousPoint = null;
+    smoothedPoint = null;
+    render();
+}
+
+function undoStroke() {
+    if (strokes.length > 0) {
+        strokes.pop();
+        currentStroke = null;
+        previousPoint = null;
+        smoothedPoint = null;
+        render();
+        gestureText.textContent = "↶ Oxirgi chiziq bekor qilindi";
+    }
+}
+
+
+function distance(a, b) {
+    return Math.sqrt(
+        Math.pow(a.x - b.x, 2) +
+        Math.pow(a.y - b.y, 2)
+    );
+}
+
+
+function isPinching(hand) {
+    const thumb = hand[4];
+    const index = hand[8];
+
+    return distance(thumb, index) < 0.07;
+}
+
+
+function isIndexUp(hand) {
+    const indexTip = hand[8];
+    const indexPip = hand[6];
+
+    return indexTip.y < indexPip.y;
+}
+
+
+let smoothedPoint = null;
+const SMOOTHING = 0.72;
+
+function getPoint(hand) {
+    const raw = {
+        x: 1 - hand[8].x,
+        y: hand[8].y
+    };
+
+    if (!smoothedPoint) {
+        smoothedPoint = raw;
+    } else {
+        smoothedPoint.x += (raw.x - smoothedPoint.x) * (1 - SMOOTHING);
+        smoothedPoint.y += (raw.y - smoothedPoint.y) * (1 - SMOOTHING);
+    }
+
+    return { x: smoothedPoint.x, y: smoothedPoint.y };
+}
+
+
+function moveAll(dx, dy) {
+    for (const stroke of strokes) {
+        for (const point of stroke.points) {
+            point.x += dx;
+            point.y += dy;
+        }
+    }
+}
+
+
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (const stroke of strokes) {
+
+        if (!stroke.points || stroke.points.length < 2) {
+            continue;
+        }
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            stroke.points[0].x * canvas.width,
+            stroke.points[0].y * canvas.height
+        );
+
+        for (let i = 1; i < stroke.points.length; i++) {
+
+            ctx.lineTo(
+                stroke.points[i].x * canvas.width,
+                stroke.points[i].y * canvas.height
+            );
+        }
+
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.imageSmoothingEnabled = true;
+
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = stroke.color;
+
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+    }
+
+    if (currentStroke && currentStroke.points.length > 1) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            currentStroke.points[0].x * canvas.width,
+            currentStroke.points[0].y * canvas.height
+        );
+
+        for (let i = 1; i < currentStroke.points.length; i++) {
+
+            ctx.lineTo(
+                currentStroke.points[i].x * canvas.width,
+                currentStroke.points[i].y * canvas.height
+            );
+        }
+
+        ctx.strokeStyle = currentStroke.color;
+        ctx.lineWidth = currentStroke.size;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.imageSmoothingEnabled = true;
+
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = currentStroke.color;
+
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+    }
+}
+
+
+function fingerUp(hand, tip, pip) {
+    return hand[tip].y < hand[pip].y;
+}
+
+function isPeace(hand) {
+    return fingerUp(hand, 8, 6) && fingerUp(hand, 12, 10) &&
+           !fingerUp(hand, 16, 14) && !fingerUp(hand, 20, 18);
+}
+
+function isThumbsUp(hand) {
+    return hand[4].y < hand[3].y &&
+           !fingerUp(hand, 8, 6) &&
+           !fingerUp(hand, 12, 10) &&
+           !fingerUp(hand, 16, 14) &&
+           !fingerUp(hand, 20, 18);
+}
+
+function isFist(hand) {
+    return !fingerUp(hand, 8, 6) &&
+           !fingerUp(hand, 12, 10) &&
+           !fingerUp(hand, 16, 14) &&
+           !fingerUp(hand, 20, 18);
+}
+
+function cycleColor() {
+    const colors = ["#00f5ff", "#8b5cf6", "#ff3b81", "#ffffff"];
+    const i = colors.indexOf(brushColor);
+    setColor(colors[(i + 1) % colors.length]);
+}
+
+function handleHand(hand) {
+    const point = getPoint(hand);
+    const pinch = isPinching(hand);
+    const indexUp = isIndexUp(hand);
+    const peace = isPeace(hand);
+    const thumbsUp = isThumbsUp(hand);
+    const fist = isFist(hand);
+
+    // Pinch + move = move the whole drawing.
+    if (pinch) {
+        gestureText.textContent = "🤏 Pinch — chizmani harakatlantirish";
+
+        if (!previousPoint) {
+            previousPoint = point;
+        }
+
+        const dx = point.x - previousPoint.x;
+        const dy = point.y - previousPoint.y;
+        moveAll(dx, dy);
+
+        previousPoint = point;
+        currentStroke = null;
+        render();
+        return;
+    }
+
+    previousPoint = null;
+
+    // Peace sign = undo last stroke.
+    if (peace) {
+        if (!peaceActive) {
+            undoStroke();
+            peaceActive = true;
+        }
+        currentStroke = null;
+        gestureText.textContent = "✌️ Peace — Undo";
+        render();
+        return;
+    }
+    peaceActive = false;
+
+    // Thumbs up = cycle brush color.
+    if (thumbsUp) {
+        if (!thumbActive) {
+            cycleColor();
+            thumbActive = true;
+        }
+        currentStroke = null;
+        gestureText.textContent = "👍 Rang almashtirildi";
+        render();
+        return;
+    }
+    thumbActive = false;
+
+    // Closed fist = pause drawing.
+    if (fist) {
+        currentStroke = null;
+        gestureText.textContent = "✊ Pauza";
+        render();
+        return;
+    }
+
+    // Index finger = draw.
+    if (mode === "draw" && indexUp) {
+        gestureText.textContent = "☝️ Chizilmoqda";
+
+        if (!currentStroke) {
+            currentStroke = {
+                points: [point],
+                color: brushColor,
+                size: brushSize
+            };
+            strokes.push(currentStroke);
+        } else {
+            const last = currentStroke.points[currentStroke.points.length - 1];
+            const dx = point.x - last.x;
+            const dy = point.y - last.y;
+
+            if ((dx * dx + dy * dy) > 0.000012) {
+                currentStroke.points.push(point);
+            }
+        }
+
+        render();
+    } else {
+        gestureText.textContent = "Qo‘l ishorasini tanlang";
+        currentStroke = null;
+    }
+}
+
+function onResults(results) {
+
+    if (!results.multiHandLandmarks ||
+        results.multiHandLandmarks.length === 0) {
+
+        gestureText.textContent = "Qo‘l kutilmoqda...";
+        currentStroke = null;
+        previousPoint = null;
+        smoothedPoint = null;
+
+        render();
+
+        return;
+    }
+
+    const hand = results.multiHandLandmarks[0];
+
+    handleHand(hand);
+}
+
+
+const hands = new Hands({
+    locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    }
+});
+
+
+hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.7
+});
+
+
+hands.onResults(onResults);
+
+
+async function startCamera() {
+
+    try {
+
+        if (!navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia) {
+
+            throw new Error("Brauzer kamera API ni qo‘llamaydi");
+        }
+
+
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: 1280,
+                    height: 720,
+                    facingMode: { ideal: "environment" }
+                },
+                audio: false
+            });
+
+
+        video.srcObject = stream;
+
+        await video.play();
+
+        loading.style.display = "none";
+
+        statusText.textContent = "Kamera ulandi";
+        statusDot.className =
+            "w-2.5 h-2.5 rounded-full bg-green-400";
+
+        resizeCanvas();
+
+
+        async function processFrame() {
+
+            if (video.readyState >= 2) {
+                await hands.send({
+                    image: video
+                });
+            }
+
+            requestAnimationFrame(processFrame);
+        }
+
+        processFrame();
+
+
+    } catch (error) {
+
+        console.error("CAMERA ERROR:", error);
+
+        statusText.textContent = "Kamera ulanmagan";
+        statusDot.className =
+            "w-2.5 h-2.5 rounded-full bg-red-500";
+
+        loading.innerHTML = `
+            <div class="text-center px-6">
+                <div class="text-5xl mb-4">📷</div>
+
+                <h2 class="text-xl font-bold text-red-300">
+                    Kamera ochilmadi
+                </h2>
+
+                <p class="text-gray-400 text-sm mt-3">
+                    Brauzerda kamera uchun Allow bosing.
+                </p>
+
+                <p class="text-gray-600 text-xs mt-3">
+                    ${error.message}
+                </p>
+            </div>
+        `;
+    }
+}
+
+
+video.addEventListener("loadedmetadata", resizeCanvas);
+
+
+window.addEventListener("load", () => {
+    startCamera();
+});
+</script>
+
+
+</body>
+</html>
